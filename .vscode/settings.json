@@ -10,7 +10,10 @@
     "**/.project": true,
     "**/.settings": true,
     "**/.factorypath": true,
-    "node_modules": true
+    "node_modules": true,
+    "e2e": true
   },
-  "explorerExclude.backup": null
+  "explorerExclude.backup": {},
+  "cSpell.words": ["deeppurple"],
+  "editor.formatOnSave": true
 }
