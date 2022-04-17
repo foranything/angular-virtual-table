@@ -1,4 +1,8 @@
-import { Component } from '@angular/core';
+import { Component, Inject, OnInit } from '@angular/core';
+import { combineLatest, Observable, of } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { TableVirtualScrollStrategy } from './virtualScrollStrategy.service';
+import { VIRTUAL_SCROLL_STRATEGY } from '@angular/cdk/scrolling';
 
 export interface PeriodicElement {
   name: string;
@@ -22,9 +26,49 @@ const ELEMENT_DATA: PeriodicElement[] = [
 
 @Component({
   selector: 'app-table-component',
-  templateUrl: 'table.template.html'
+  templateUrl: 'table.template.html',
+  providers: [
+    {
+      provide: VIRTUAL_SCROLL_STRATEGY,
+      useClass: TableVirtualScrollStrategy
+    }
+  ]
 })
-export class TableComponent {
+export class TableComponent implements OnInit {
+  static BUFFER_SIZE = 3;
+
+  rowHeight = 48;
+
+  headerHeight = 56;
+
+  rows: Observable<PeriodicElement[]> = of([...ELEMENT_DATA, ...ELEMENT_DATA]);
+
   displayedColumns: string[] = ['position', 'name', 'weight', 'symbol'];
-  dataSource = ELEMENT_DATA;
+
+  dataSource!: Observable<PeriodicElement[]>;
+
+  constructor(
+    @Inject(VIRTUAL_SCROLL_STRATEGY)
+    private readonly scrollStrategy: TableVirtualScrollStrategy
+  ) {}
+
+  gridHeight = 400;
+
+  ngOnInit(): void {
+    const range =
+      Math.ceil(this.gridHeight / this.rowHeight) + TableComponent.BUFFER_SIZE;
+    this.scrollStrategy.setScrollHeight(this.rowHeight, this.headerHeight);
+
+    this.dataSource = combineLatest([
+      this.rows,
+      this.scrollStrategy.scrolledIndexChange
+    ]).pipe(
+      map((value) => {
+        const start = Math.max(0, value[1] - TableComponent.BUFFER_SIZE);
+        const end = Math.min(value[0].length, value[1] + range);
+
+        return value[0].slice(start, end);
+      })
+    );
+  }
 }
